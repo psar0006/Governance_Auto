@@ -1,4 +1,5 @@
 import pandas as pd
+from openpyxl.workbook import Workbook
 from sqlalchemy import create_engine
 import json
 import logging
@@ -184,15 +185,20 @@ class DataFrameProcessor:
         if self.df is None:
             raise ValueError("No DataFrame loaded.")
 
-        dict_df = pd.DataFrame(self.generate_data_dictionary())
+        data_dict = self.generate_data_dictionary()
 
-        with pd.ExcelWriter(output_path, engine="xlsxwriter") as writer:
+
+        dict_df = pd.DataFrame(data_dict)
+
+        with pd.ExcelWriter(output_path) as writer:
             dict_df.to_excel(writer, sheet_name="Data Dictionary", index=False)
 
             if include_qa:
-                qa = self.qa_checks()
-                qa_df = pd.DataFrame.from_dict(qa, orient="index").reset_index()
-                qa_df.rename(columns={"index": "column_name"}, inplace=True)
+                # Write QA summary as a separate sheet
+                qa_summary = {k: v for k, v in qa.items() if k != "_row_duplicates"}
+                qa_df = pd.DataFrame([
+                    {"column_name": k, **v} for k, v in qa_summary.items()
+                ])
                 qa_df.to_excel(writer, sheet_name="QA Checks", index=False)
 
         return output_path
