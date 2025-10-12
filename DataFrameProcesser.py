@@ -67,13 +67,35 @@ class DataFrameProcessor:
         """Generate a basic data dictionary for the DataFrame."""
         if self.df is None:
             raise ValueError("No DataFrame loaded.")
-
+        
+        # Mapping of pandas dtypes to user-friendly names
+        dtype_mapping = {
+            'int64': 'numeric',
+            'int32': 'numeric',
+            'int16': 'numeric',
+            'int8': 'numeric',
+            'float64': 'numeric',
+            'float32': 'numeric',
+            'float16': 'numeric',
+            'object': 'string',
+            'string': 'string',
+            'bool': 'boolean',
+            'datetime64[ns]': 'datetime',
+            'category': 'categorical',
+            'timedelta64[ns]': 'timedelta'
+        }
+        
         dictionary = []
         for col in self.df.columns:
             series = self.df[col]
+            dtype_str = str(series.dtype)
+            
+            # Get user-friendly type name, default to the original dtype if not in mapping
+            friendly_type = dtype_mapping.get(dtype_str, dtype_str)
+            
             col_info = {
                 "column_name": col,
-                "dtype": str(series.dtype),
+                "type": friendly_type,
                 "num_nulls": int(series.isnull().sum()),
                 "num_distinct": int(series.nunique()),
                 "example_values": series.dropna().unique()[:5].tolist()
@@ -186,8 +208,6 @@ class DataFrameProcessor:
             raise ValueError("No DataFrame loaded.")
 
         data_dict = self.generate_data_dictionary()
-
-
         dict_df = pd.DataFrame(data_dict)
 
         with pd.ExcelWriter(output_path) as writer:
@@ -195,6 +215,7 @@ class DataFrameProcessor:
 
             if include_qa:
                 # Write QA summary as a separate sheet
+                qa = self.qa_checks(include_top_values=False)
                 qa_summary = {k: v for k, v in qa.items() if k != "_row_duplicates"}
                 qa_df = pd.DataFrame([
                     {"column_name": k, **v} for k, v in qa_summary.items()
