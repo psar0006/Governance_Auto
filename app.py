@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import tempfile
 import os
-from dataframe_processor import DataFrameProcessor
+from DataFrame_Processer import DataFrameProcessor
 
 app = FastAPI(
     title="Audit-Ready Data Governance API",
